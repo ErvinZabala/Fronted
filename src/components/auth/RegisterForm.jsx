@@ -41,7 +41,7 @@ const RegisterForm = () => {
           type="text"
           name="nombre"
           placeholder="Nombre"
-          value={formData.name}
+          value={formData.nombre}
           onChange={handleChange}
           required
         />
