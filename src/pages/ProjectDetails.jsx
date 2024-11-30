@@ -265,7 +265,7 @@ const ProjectDetails = () => {
           )}
         </>
       ) : (
-        <p style={{ textAlign: 'center' }}>Error: Proyecto no encontrado.</p>
+        <p style={{ textAlign: 'center' }}>Cargando su tarea...</p>
       )}
     </div>
   );
