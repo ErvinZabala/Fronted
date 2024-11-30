@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom'; // Importar Link para el enlace
+import api from '../api/api';
 
 const ProjectDetails = () => {
   const { id } = useParams(); // ID del proyecto
@@ -17,14 +18,8 @@ const ProjectDetails = () => {
   useEffect(() => {
     const fetchProject = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`http://localhost:3000/api/proyectos/${id}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        const data = await response.json();
-        setProject(data);
+        const response = await api.get(`/proyectos/${id}`);
+        setProject(response.data);
       } catch (error) {
         setMensaje('Error al cargar el proyecto.');
       }
@@ -32,14 +27,8 @@ const ProjectDetails = () => {
 
     const fetchTasks = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`http://localhost:3000/api/proyectos/${id}/tareas`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        const data = await response.json();
-        setTasks(data);
+        const response = await api.get(`/proyectos/${id}/tareas`);
+        setTasks(response.data);
       } catch (error) {
         setMensaje('Error al cargar las tareas.');
       }
@@ -59,25 +48,10 @@ const ProjectDetails = () => {
   const handleAddTask = async (e) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/api/proyectos/${id}/tareas`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(newTask),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setTasks([...tasks, data]); // Agregar tarea a la lista
-        setNewTask({ titulo: '', descripcion: '', prioridad: 'media', estado: 'pendiente' }); // Resetear el formulario
-        setMensaje('Tarea creada con éxito.');
-      } else {
-        setMensaje(data.msg || 'Error al crear la tarea.');
-      }
+      const response = await api.post(`/proyectos/${id}/tareas`, newTask);
+      setTasks([...tasks, response.data]); // Agregar tarea a la lista
+      setNewTask({ titulo: '', descripcion: '', prioridad: 'media', estado: 'pendiente' }); // Resetear el formulario
+      setMensaje('Tarea creada con éxito.');
     } catch (error) {
       setMensaje('Hubo un error al crear la tarea.');
     }
@@ -85,20 +59,9 @@ const ProjectDetails = () => {
 
   const handleDeleteTask = async (taskId) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/api/proyectos/${id}/tareas/${taskId}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        setTasks(tasks.filter((task) => task._id !== taskId)); // Eliminar tarea de la lista
-        setMensaje('Tarea eliminada con éxito.');
-      } else {
-        setMensaje('Error al eliminar la tarea.');
-      }
+      await api.delete(`/proyectos/${id}/tareas/${taskId}`);
+      setTasks(tasks.filter((task) => task._id !== taskId)); // Eliminar tarea de la lista
+      setMensaje('Tarea eliminada con éxito.');
     } catch (error) {
       setMensaje('Hubo un error al eliminar la tarea.');
     }
@@ -117,28 +80,13 @@ const ProjectDetails = () => {
   const handleUpdateTask = async (e) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/api/proyectos/${id}/tareas/${editingTask._id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(newTask),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setTasks(
-          tasks.map((task) => (task._id === editingTask._id ? data : task)) // Actualizar tarea en la lista
-        );
-        setEditingTask(null); // Limpiar edición
-        setNewTask({ titulo: '', descripcion: '', prioridad: 'media', estado: 'pendiente' });
-        setMensaje('Tarea actualizada con éxito.');
-      } else {
-        setMensaje('Error al actualizar la tarea.');
-      }
+      const response = await api.put(`/proyectos/${id}/tareas/${editingTask._id}`, newTask);
+      setTasks(
+        tasks.map((task) => (task._id === editingTask._id ? response.data : task)) // Actualizar tarea en la lista
+      );
+      setEditingTask(null); // Limpiar edición
+      setNewTask({ titulo: '', descripcion: '', prioridad: 'media', estado: 'pendiente' });
+      setMensaje('Tarea actualizada con éxito.');
     } catch (error) {
       setMensaje('Hubo un error al actualizar la tarea.');
     }
@@ -159,7 +107,10 @@ const ProjectDetails = () => {
       )}
       {project ? (
         <>
-          <h1 style={{ textAlign: 'center' }}>{project.nombre}</h1>
+          {/* Enlace añadido al título del proyecto */}
+          <Link to="/projects" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <h1 style={{ textAlign: 'center', cursor: 'pointer' }}>{project.nombre}</h1>
+          </Link>
           <p style={{ textAlign: 'center', color: '#555' }}>{project.descripcion}</p>
 
           {/* Formulario para agregar o editar tareas */}

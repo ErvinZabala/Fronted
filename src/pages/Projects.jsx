@@ -1,249 +1,128 @@
 import { useState, useEffect } from 'react';
-import api from '../api/api';
 import { Link } from 'react-router-dom';
+import api from '../api/api';
 
 const Projects = () => {
-  const [nombre, setNombre] = useState('');
-  const [descripcion, setDescripcion] = useState('');
-  const [proyectos, setProyectos] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [newProject, setNewProject] = useState({ nombre: '', descripcion: '' });
   const [mensaje, setMensaje] = useState('');
-  const [editingProject, setEditingProject] = useState(null); // Proyecto en edición
 
-  // Obtener los proyectos al cargar la página
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await api.get('/proyectos', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        setProyectos(response.data);
-      } catch (err) {
-        console.error(err);
+        const response = await api.get('/proyectos');
+        setProjects(response.data);
+      } catch (error) {
+        setMensaje('Error al cargar los proyectos.');
       }
     };
+
     fetchProjects();
   }, []);
 
-  // Crear un nuevo proyecto
-  const handleSubmit = async (e) => {
+  const handleInputChange = (e) => {
+    setNewProject({ ...newProject, [e.target.name]: e.target.value });
+  };
+
+  const handleAddProject = async (e) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('token');
-      if (editingProject) {
-        // Actualizar proyecto existente
-        const response = await api.put(
-          `/proyectos/${editingProject._id}`,
-          { nombre, descripcion },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        setProyectos(
-          proyectos.map((proyecto) =>
-            proyecto._id === editingProject._id ? response.data : proyecto
-          )
-        );
-        setMensaje('Proyecto actualizado con éxito.');
-        setEditingProject(null);
-      } else {
-        // Crear un nuevo proyecto
-        const response = await api.post(
-          '/proyectos',
-          { nombre, descripcion },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        setProyectos([...proyectos, response.data]);
-        setMensaje('Proyecto creado con éxito.');
-      }
-      setNombre('');
-      setDescripcion('');
-    } catch (err) {
-      console.error(err);
-      setMensaje('Error al crear o actualizar el proyecto.');
+      const response = await api.post('/proyectos', newProject);
+      setProjects([...projects, response.data]); // Añadir el proyecto a la lista
+      setNewProject({ nombre: '', descripcion: '' }); // Limpiar formulario
+      setMensaje('Proyecto creado con éxito.');
+    } catch (error) {
+      setMensaje('Hubo un error al crear el proyecto.');
     }
   };
 
-  // Eliminar un proyecto
-  const handleDelete = async (id) => {
+  const handleDeleteProject = async (projectId) => {
     try {
-      const token = localStorage.getItem('token');
-      await api.delete(`/proyectos/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      setProyectos(proyectos.filter((proyecto) => proyecto._id !== id));
+      await api.delete(`/proyectos/${projectId}`);
+      setProjects(projects.filter((project) => project._id !== projectId)); // Eliminar proyecto de la lista
       setMensaje('Proyecto eliminado con éxito.');
-    } catch (err) {
-      console.error(err);
-      setMensaje('Error al eliminar el proyecto.');
+    } catch (error) {
+      setMensaje('Hubo un error al eliminar el proyecto.');
     }
-  };
-
-  // Establecer proyecto en edición
-  const handleEdit = (project) => {
-    setEditingProject(project);
-    setNombre(project.nombre);
-    setDescripcion(project.descripcion);
-  };
-
-  // Cancelar edición
-  const handleCancelEdit = () => {
-    setEditingProject(null);
-    setNombre('');
-    setDescripcion('');
   };
 
   return (
-    <div
-      style={{
-        padding: '20px',
-        maxWidth: '800px',
-        margin: '0 auto',
-        fontFamily: 'Arial, sans-serif',
-      }}
-    >
-      <h1 style={{ textAlign: 'center', marginBottom: '20px' }}>Gestión de Proyectos</h1>
+    <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
       {mensaje && (
-        <p
-          style={{
-            color: mensaje.includes('éxito') ? 'green' : 'red',
-            textAlign: 'center',
-            marginBottom: '20px',
-          }}
-        >
+        <p style={{ textAlign: 'center', color: mensaje.includes('éxito') ? 'green' : 'red' }}>
           {mensaje}
         </p>
       )}
-      <form
-        onSubmit={handleSubmit}
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '10px',
-          marginBottom: '20px',
-        }}
-      >
-        <label htmlFor="nombre" style={{ fontWeight: 'bold' }}>
-          Título:
-        </label>
-        <input
-          id="nombre"
-          type="text"
-          placeholder="Nombre del Proyecto"
-          value={nombre}
-          onChange={(e) => setNombre(e.target.value)}
-          required
-          style={{
-            padding: '10px',
-            border: '1px solid #ccc',
-            borderRadius: '4px',
-          }}
-        />
-        <label htmlFor="descripcion" style={{ fontWeight: 'bold' }}>
-          Descripción:
-        </label>
-        <textarea
-          id="descripcion"
-          placeholder="Descripción"
-          value={descripcion}
-          onChange={(e) => setDescripcion(e.target.value)}
-          rows="3"
-          style={{
-            padding: '10px',
-            border: '1px solid #ccc',
-            borderRadius: '4px',
-            resize: 'none',
-          }}
-        ></textarea>
+      <h1 style={{ textAlign: 'center' }}>Gestión de Proyectos</h1>
+      <form onSubmit={handleAddProject} style={{ marginBottom: '20px' }}>
+        <div style={{ marginBottom: '10px' }}>
+          <label style={{ display: 'block', marginBottom: '5px' }}>Título:</label>
+          <input
+            type="text"
+            name="nombre"
+            value={newProject.nombre}
+            onChange={handleInputChange}
+            required
+            style={{
+              width: '100%',
+              padding: '10px',
+              border: '1px solid #ccc',
+              borderRadius: '4px',
+            }}
+          />
+        </div>
+        <div style={{ marginBottom: '10px' }}>
+          <label style={{ display: 'block', marginBottom: '5px' }}>Descripción:</label>
+          <textarea
+            name="descripcion"
+            value={newProject.descripcion}
+            onChange={handleInputChange}
+            style={{
+              width: '100%',
+              padding: '10px',
+              border: '1px solid #ccc',
+              borderRadius: '4px',
+            }}
+          />
+        </div>
         <button
           type="submit"
           style={{
+            width: '100%',
             padding: '10px',
-            backgroundColor: editingProject ? '#007BFF' : '#28a745',
-            color: '#fff',
+            backgroundColor: '#28a745',
+            color: 'white',
             border: 'none',
             borderRadius: '4px',
             cursor: 'pointer',
           }}
         >
-          {editingProject ? 'Actualizar Proyecto' : 'Crear'}
+          Crear
         </button>
-        {editingProject && (
-          <button
-            type="button"
-            onClick={handleCancelEdit}
-            style={{
-              padding: '10px',
-              backgroundColor: 'gray',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              marginTop: '10px',
-            }}
-          >
-            Cancelar Edición
-          </button>
-        )}
       </form>
-      <div>
-        {proyectos.map((proyecto, index) => (
-          <div
-            key={index}
-            style={{
-              border: '1px solid #ccc',
-              borderRadius: '8px',
-              padding: '10px',
-              marginBottom: '10px',
-              boxShadow: '0px 4px 6px rgba(0, 0, 0, 0.1)',
-            }}
-          >
-            <p style={{ fontWeight: 'bold', margin: '0 0 5px 0' }}>Título:</p>
-            <Link
-              to={`/projects/${proyecto._id}`}
+
+      {projects.length > 0 ? (
+        <ul>
+          {projects.map((project) => (
+            <li
+              key={project._id}
               style={{
-                textDecoration: 'none',
-                color: '#007BFF',
-                fontWeight: 'bold',
+                padding: '10px',
+                marginBottom: '10px',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                backgroundColor: '#f9f9f9',
               }}
             >
-              {proyecto.nombre}
-            </Link>
-            <p style={{ fontWeight: 'bold', margin: '0 0 5px 0' }}>Descripción:</p>
-            <p style={{ margin: 0, color: '#555' }}>{proyecto.descripcion}</p>
-            <div
-              style={{
-                display: 'flex',
-                gap: '10px',
-                marginTop: '10px',
-              }}
-            >
+              <strong>Título:</strong> {project.nombre}
+              <br />
+              <strong>Descripción:</strong> {project.descripcion}
+              <br />
               <button
-                onClick={() => handleEdit(proyecto)}
+                onClick={() => handleDeleteProject(project._id)}
                 style={{
-                  padding: '5px 10px',
-                  backgroundColor: '#007BFF',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                }}
-              >
-                Editar
-              </button>
-              <button
-                onClick={() => handleDelete(proyecto._id)}
-                style={{
+                  marginTop: '10px',
+                  marginRight: '10px',
                   padding: '5px 10px',
                   backgroundColor: 'red',
                   color: 'white',
@@ -254,10 +133,28 @@ const Projects = () => {
               >
                 Eliminar
               </button>
-            </div>
-          </div>
-        ))}
-      </div>
+              {/* Botón añadido para "Añadir Tarea" */}
+              <Link to={`/projects/${project._id}`}>
+                <button
+                  style={{
+                    marginTop: '10px',
+                    padding: '5px 10px',
+                    backgroundColor: '#007bff',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Añadir Tarea
+                </button>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>No hay proyectos creados.</p>
+      )}
     </div>
   );
 };
